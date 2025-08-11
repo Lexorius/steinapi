@@ -13,8 +13,7 @@ RUN apt-get update && apt-get install -y \
     cron \
     supervisor \
     libicu-dev \
-    libonig-dev \
-    && rm -rf /var/lib/apt/lists/*
+    libonig-dev 
 
 # Install PHP extensions with optimizations for PHP 8.4
 RUN docker-php-ext-install \
@@ -49,7 +48,7 @@ RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 WORKDIR /var/www/html
 
 # Copy application files
-COPY ./divera-stein-sync/ /var/www/html/
+COPY . /var/www/html/
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
