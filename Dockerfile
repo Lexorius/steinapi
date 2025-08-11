@@ -58,8 +58,17 @@ RUN chown -R www-data:www-data /var/www/html \
 
 # Create cron job for automatic sync
 
-RUN echo "*/5 * * * * /usr/local/bin/php /var/www/html/cron.php >> /var/www/html/logs/cron.log 2>&1" > /sync-cron 
-RUN crontab /sync-cron
+ENV TZ=Europe/Berlin
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN echo "date.timezone = Europe/Berlin" > /usr/local/etc/php/conf.d/timezone.ini
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+
+#RUN echo "*/5 * * * * /usr/local/bin/php /var/www/html/cron.php >> /var/www/html/logs/cron.log 2>&1" > /sync-cron 
+#RUN crontab /sync-cron
 
 # Copy supervisor configuration
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
