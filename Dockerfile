@@ -4,16 +4,12 @@
 FROM php:8.4-apache
 
 # Install system dependencies and additional PHP 8.4 requirements
-RUN apt-get update && apt-get install -y \
-    libzip-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    cron \
-    supervisor \
-    libicu-dev \
-    libonig-dev 
+RUN apt-get update 
+RUN apt-get install -y libzip-dev zip unzip git 
+RUN apt-get install -y curl cron 
+RUN apt-get install -y supervisor 
+RUN apt-get install -y libicu-dev 
+RUN apt-get install -y libonig-dev 
 
 # Install PHP extensions with optimizations for PHP 8.4
 RUN docker-php-ext-install \
