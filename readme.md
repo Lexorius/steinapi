@@ -1,3 +1,5 @@
+# Alpha Version - Nutzung auf eigene Gefahr
+
 # ===================================
 // README.md - Installationsanleitung
 // ===================================
@@ -69,5 +71,6 @@ Im Dashboard können Sie auswählen, welche Felder synchronisiert werden sollen.
 - Rate Limiting für externe APIs implementiert
 
 ## Support
+
 
 Bei Fragen oder Problemen erstellen Sie bitte ein Issue im Repository.
