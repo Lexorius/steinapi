@@ -102,7 +102,7 @@
             color: #555;
         }
         
-        select, button {
+        select, button, input[type="number"] {
             padding: 12px 20px;
             border-radius: 8px;
             border: 2px solid #e1e4e8;
@@ -110,7 +110,7 @@
             transition: all 0.3s ease;
         }
         
-        select:focus {
+        select:focus, input[type="number"]:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -130,6 +130,34 @@
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: scale(1);
+        }
+        
+        .auto-sync-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f6f8fa;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .auto-sync-group input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+        }
+        
+        .auto-sync-group label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .sync-interval-input {
+            width: 100px;
         }
         
         .sync-config {
@@ -260,6 +288,18 @@
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .alert-success {
@@ -274,11 +314,38 @@
             border: 1px solid #f5c6cb;
         }
         
+        .alert-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+        }
+        
         .icon {
             width: 24px;
             height: 24px;
             display: inline-block;
             vertical-align: middle;
+        }
+        
+        .auto-sync-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-left: 15px;
+        }
+        
+        .auto-sync-active {
+            background: #d4f4dd;
+            color: #2e7d32;
+        }
+        
+        .auto-sync-inactive {
+            background: #f5f5f5;
+            color: #999;
         }
     </style>
 </head>
@@ -286,7 +353,12 @@
     <div class="container">
         <header>
             <h1>🚒 Divera-Stein Sync Dashboard</h1>
-            <div class="subtitle">Echtzeit-Synchronisation zwischen Divera247 und Stein.app</div>
+            <div class="subtitle">
+                Echtzeit-Synchronisation zwischen Divera247 und Stein.app
+                <span id="autoSyncStatus" class="auto-sync-status auto-sync-inactive">
+                    Auto-Sync: Inaktiv
+                </span>
+            </div>
         </header>
         
         <div id="alertContainer"></div>
@@ -338,11 +410,18 @@
                 <button id="syncButton" onclick="performSync()">
                     Jetzt synchronisieren
                 </button>
-                
+            </div>
+            
+            <div class="auto-sync-group">
                 <label>
                     <input type="checkbox" id="autoSync" onchange="toggleAutoSync()">
-                    Auto-Sync alle 5 Minuten
+                    <strong>Auto-Sync aktivieren</strong>
                 </label>
+                <label for="syncInterval" style="margin-left: 20px;">
+                    Intervall (Sekunden):
+                </label>
+                <input type="number" id="syncInterval" class="sync-interval-input" value="300" min="60" max="3600">
+                <button onclick="updateSyncInterval()">Intervall speichern</button>
             </div>
         </div>
         
@@ -395,11 +474,14 @@
     
     <script>
         let autoSyncInterval = null;
+        let currentAutoSyncEnabled = false;
+        let currentSyncInterval = 300;
         
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             loadDashboardData();
             loadFieldConfig();
+            loadAutoSyncStatus();
             setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
         });
         
@@ -407,6 +489,7 @@
             fetch('api.php?action=stats')
                 .then(response => response.json())
                 .then(data => {
+                    // Update dashboard cards
                     document.getElementById('totalSyncs').textContent = data.total_syncs || 0;
                     document.getElementById('successfulSyncs').textContent = data.successful_syncs || 0;
                     document.getElementById('vehiclesSynced').textContent = data.vehicles_synced || 0;
@@ -416,13 +499,25 @@
                         : 0;
                     document.getElementById('successRate').textContent = successRate + '%';
                     
-                    if (data.last_sync) {
-                        const lastSync = new Date(data.last_sync);
+                    // Use system_last_sync if available, otherwise use last_sync from sync_log
+                    const lastSyncTime = data.system_last_sync || data.last_sync;
+                    if (lastSyncTime) {
+                        const lastSync = new Date(lastSyncTime);
                         document.getElementById('lastSyncTime').textContent = lastSync.toLocaleString('de-DE');
                         
                         const ago = getTimeAgo(lastSync);
                         document.getElementById('lastSyncAgo').textContent = ago;
                     }
+                    
+                    // Update auto-sync status from database
+                    if (data.auto_sync_enabled !== undefined) {
+                        currentAutoSyncEnabled = data.auto_sync_enabled == 1;
+                        currentSyncInterval = data.sync_interval || 300;
+                        updateAutoSyncUI(currentAutoSyncEnabled, currentSyncInterval);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading dashboard data:', error);
                 });
             
             loadSyncLogs();
@@ -434,7 +529,7 @@
                 .then(logs => {
                     const tbody = document.getElementById('logTableBody');
                     
-                    if (logs.length === 0) {
+                    if (!logs || logs.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">Keine Logs vorhanden</td></tr>';
                         return;
                     }
@@ -453,7 +548,53 @@
                             <td>${log.error_message || '-'}</td>
                         </tr>
                     `).join('');
+                })
+                .catch(error => {
+                    console.error('Error loading logs:', error);
                 });
+        }
+        
+        function loadAutoSyncStatus() {
+            fetch('api.php?action=systemStatus')
+                .then(response => response.json())
+                .then(data => {
+                    if (data && !data.error) {
+                        currentAutoSyncEnabled = data.auto_sync_enabled == 1;
+                        currentSyncInterval = data.sync_interval || 300;
+                        updateAutoSyncUI(currentAutoSyncEnabled, currentSyncInterval);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading auto-sync status:', error);
+                });
+        }
+        
+        function updateAutoSyncUI(enabled, interval) {
+            const checkbox = document.getElementById('autoSync');
+            const intervalInput = document.getElementById('syncInterval');
+            const statusElement = document.getElementById('autoSyncStatus');
+            
+            checkbox.checked = enabled;
+            intervalInput.value = interval;
+            
+            if (enabled) {
+                statusElement.className = 'auto-sync-status auto-sync-active';
+                statusElement.innerHTML = `⚡ Auto-Sync: Aktiv (alle ${interval}s)`;
+                
+                // Start local interval if not already running
+                if (!autoSyncInterval) {
+                    autoSyncInterval = setInterval(performSync, interval * 1000);
+                }
+            } else {
+                statusElement.className = 'auto-sync-status auto-sync-inactive';
+                statusElement.innerHTML = '⏸️ Auto-Sync: Inaktiv';
+                
+                // Clear local interval
+                if (autoSyncInterval) {
+                    clearInterval(autoSyncInterval);
+                    autoSyncInterval = null;
+                }
+            }
         }
         
         function performSync() {
@@ -490,15 +631,94 @@
         
         function toggleAutoSync() {
             const checkbox = document.getElementById('autoSync');
+            const interval = parseInt(document.getElementById('syncInterval').value) || 300;
             
-            if (checkbox.checked) {
-                autoSyncInterval = setInterval(performSync, 5 * 60 * 1000); // 5 minutes
-                showAlert('success', 'Auto-Sync aktiviert - Synchronisation alle 5 Minuten');
-            } else {
-                clearInterval(autoSyncInterval);
-                autoSyncInterval = null;
-                showAlert('success', 'Auto-Sync deaktiviert');
+            // Send update to server
+            fetch('api.php?action=updateAutoSync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    enabled: checkbox.checked,
+                    interval: interval
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentAutoSyncEnabled = checkbox.checked;
+                    currentSyncInterval = interval;
+                    
+                    if (checkbox.checked) {
+                        // Clear any existing interval
+                        if (autoSyncInterval) {
+                            clearInterval(autoSyncInterval);
+                        }
+                        // Start new interval
+                        autoSyncInterval = setInterval(performSync, interval * 1000);
+                        showAlert('success', `Auto-Sync aktiviert - Synchronisation alle ${interval} Sekunden`);
+                    } else {
+                        // Clear interval
+                        if (autoSyncInterval) {
+                            clearInterval(autoSyncInterval);
+                            autoSyncInterval = null;
+                        }
+                        showAlert('info', 'Auto-Sync deaktiviert');
+                    }
+                    
+                    updateAutoSyncUI(checkbox.checked, interval);
+                } else {
+                    showAlert('error', 'Fehler beim Aktualisieren der Auto-Sync Einstellungen');
+                    // Revert checkbox state
+                    checkbox.checked = currentAutoSyncEnabled;
+                }
+            })
+            .catch(error => {
+                showAlert('error', 'Netzwerkfehler: ' + error.message);
+                // Revert checkbox state
+                checkbox.checked = currentAutoSyncEnabled;
+            });
+        }
+        
+        function updateSyncInterval() {
+            const interval = parseInt(document.getElementById('syncInterval').value);
+            
+            if (interval < 60 || interval > 3600) {
+                showAlert('error', 'Intervall muss zwischen 60 und 3600 Sekunden liegen');
+                return;
             }
+            
+            const isEnabled = document.getElementById('autoSync').checked;
+            
+            fetch('api.php?action=updateAutoSync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    enabled: isEnabled,
+                    interval: interval
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentSyncInterval = interval;
+                    
+                    // Restart interval if auto-sync is enabled
+                    if (isEnabled) {
+                        if (autoSyncInterval) {
+                            clearInterval(autoSyncInterval);
+                        }
+                        autoSyncInterval = setInterval(performSync, interval * 1000);
+                    }
+                    
+                    showAlert('success', `Sync-Intervall auf ${interval} Sekunden gesetzt`);
+                    updateAutoSyncUI(isEnabled, interval);
+                } else {
+                    showAlert('error', 'Fehler beim Aktualisieren des Intervalls');
+                }
+            })
+            .catch(error => {
+                showAlert('error', 'Netzwerkfehler: ' + error.message);
+            });
         }
         
         function loadFieldConfig() {
@@ -511,6 +731,9 @@
                             checkbox.checked = field.active == 1;
                         }
                     });
+                })
+                .catch(error => {
+                    console.error('Error loading field config:', error);
                 });
         }
         
@@ -528,6 +751,9 @@
                 if (data.success) {
                     showAlert('success', `Feld "${fieldName}" wurde ${active ? 'aktiviert' : 'deaktiviert'}`);
                 }
+            })
+            .catch(error => {
+                showAlert('error', 'Fehler beim Aktualisieren der Feldkonfiguration');
             });
         }
         
@@ -540,7 +766,8 @@
             container.appendChild(alert);
             
             setTimeout(() => {
-                alert.remove();
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 300);
             }, 5000);
         }
         

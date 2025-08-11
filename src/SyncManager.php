@@ -20,6 +20,7 @@ class SyncManager {
     
     public function sync($direction = 'both') {
         $results = [];
+        $syncStartTime = date('Y-m-d H:i:s');
         
         // Get data from both systems
         $diveraData = $this->diveraApi->getVehicleStatus();
@@ -72,6 +73,9 @@ class SyncManager {
                 $this->logSync($syncResult);
             }
         }
+        
+        // Update system_status with last sync time
+        $this->updateSystemStatus($syncStartTime, count($results));
         
         return $results;
     }
@@ -166,6 +170,73 @@ class SyncManager {
         ]);
     }
     
+    private function updateSystemStatus($syncTime, $syncedCount) {
+        try {
+            // Check if system_status entry exists
+            $stmt = $this->db->query("SELECT COUNT(*) FROM system_status");
+            $exists = $stmt->fetchColumn() > 0;
+            
+            if ($exists) {
+                // Update existing entry
+                $stmt = $this->db->prepare("
+                    UPDATE system_status 
+                    SET last_sync = ?, 
+                        last_sync_count = ?,
+                        total_syncs = total_syncs + 1,
+                        updated_at = NOW() 
+                    WHERE id = 1
+                ");
+                $stmt->execute([$syncTime, $syncedCount]);
+            } else {
+                // Create new entry
+                $stmt = $this->db->prepare("
+                    INSERT INTO system_status 
+                    (last_sync, last_sync_count, total_syncs, auto_sync_enabled, sync_interval) 
+                    VALUES (?, ?, 1, 0, 300)
+                ");
+                $stmt->execute([$syncTime, $syncedCount]);
+            }
+        } catch (Exception $e) {
+            error_log("Failed to update system status: " . $e->getMessage());
+        }
+    }
+    
+    public function getSystemStatus() {
+        try {
+            $stmt = $this->db->query("
+                SELECT 
+                    last_sync,
+                    last_sync_count,
+                    total_syncs,
+                    auto_sync_enabled,
+                    sync_interval,
+                    updated_at
+                FROM system_status 
+                WHERE id = 1
+            ");
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+    
+    public function setAutoSync($enabled, $interval = 300) {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE system_status 
+                SET auto_sync_enabled = ?, 
+                    sync_interval = ?,
+                    updated_at = NOW() 
+                WHERE id = 1
+            ");
+            $stmt->execute([$enabled ? 1 : 0, $interval]);
+            return true;
+        } catch (Exception $e) {
+            error_log("Failed to update auto sync settings: " . $e->getMessage());
+            return false;
+        }
+    }
+    
     public function getSyncStats() {
         $stmt = $this->db->query("
             SELECT 
@@ -177,7 +248,19 @@ class SyncManager {
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
         ");
         
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Also get system status for more complete stats
+        $systemStatus = $this->getSystemStatus();
+        if ($systemStatus) {
+            $stats['system_last_sync'] = $systemStatus['last_sync'];
+            $stats['last_sync_count'] = $systemStatus['last_sync_count'];
+            $stats['total_syncs_all_time'] = $systemStatus['total_syncs'];
+            $stats['auto_sync_enabled'] = $systemStatus['auto_sync_enabled'];
+            $stats['sync_interval'] = $systemStatus['sync_interval'];
+        }
+        
+        return $stats;
     }
     
     public function getRecentSyncs($limit = 50) {
@@ -189,5 +272,91 @@ class SyncManager {
         $stmt->execute([$limit]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    
+    public function getVehicleHistory($vehicleName, $days = 7) {
+        $stmt = $this->db->prepare("
+            SELECT 
+                created_at,
+                sync_direction,
+                fields_synced,
+                success,
+                error_message
+            FROM sync_log 
+            WHERE vehicle_name = ?
+                AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([$vehicleName, $days]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    public function getSyncConflicts() {
+        // Find vehicles that had sync issues in the last 24 hours
+        $stmt = $this->db->query("
+            SELECT 
+                vehicle_name,
+                COUNT(*) as failure_count,
+                MAX(error_message) as last_error,
+                MAX(created_at) as last_attempt
+            FROM sync_log 
+            WHERE success = 0
+                AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            GROUP BY vehicle_name
+            ORDER BY failure_count DESC
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    public function manualSyncVehicle($vehicleName, $direction = 'both') {
+        // Get data from both systems
+        $diveraData = $this->diveraApi->getVehicleStatus();
+        $steinData = $this->steinApi->getAssets();
+        
+        $diveraAsset = null;
+        $steinAsset = null;
+        
+        // Find the specific vehicle
+        foreach ($diveraData as $asset) {
+            if ($asset['number'] === $vehicleName || $asset['name'] === $vehicleName) {
+                $diveraAsset = $asset;
+                break;
+            }
+        }
+        
+        foreach ($steinData as $asset) {
+            if ($asset['name'] === $vehicleName) {
+                $steinAsset = $asset;
+                break;
+            }
+        }
+        
+        if (!$diveraAsset || !$steinAsset) {
+            throw new Exception("Vehicle not found in both systems: " . $vehicleName);
+        }
+        
+        // Perform sync for this specific vehicle
+        $result = $this->performSync($diveraAsset, $steinAsset, $direction);
+        
+        if ($result) {
+            $this->logSync($result);
+            $this->updateSystemStatus(date('Y-m-d H:i:s'), 1);
+        }
+        
+        return $result;
+    }
+    
+    public function cleanOldLogs($days = 30) {
+        try {
+            $stmt = $this->db->prepare("
+                DELETE FROM sync_log 
+                WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
+            ");
+            $stmt->execute([$days]);
+            
+            return $stmt->rowCount();
+        } catch (Exception $e) {
+            error_log("Failed to clean old logs: " . $e->getMessage());
+            return 0;
+        }
+    }
 }
-?>
