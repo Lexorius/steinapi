@@ -1,4 +1,3 @@
-
 #!/bin/bash
 # docker-entrypoint.sh
 set -e
