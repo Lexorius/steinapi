@@ -38,10 +38,12 @@ INSERT INTO sync_config (field_name, active) VALUES
     ('crew', 0)
 ON DUPLICATE KEY UPDATE field_name=field_name;
 
--- Tabelle für System-Status (optional)
+-- Tabelle für System-Status
 CREATE TABLE IF NOT EXISTS system_status (
     id INT AUTO_INCREMENT PRIMARY KEY,
     last_sync TIMESTAMP NULL,
+    last_sync_count INT DEFAULT 0,
+    total_syncs INT DEFAULT 0,
     auto_sync_enabled BOOLEAN DEFAULT FALSE,
     sync_interval INT DEFAULT 300,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
