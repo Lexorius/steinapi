@@ -2,9 +2,9 @@
 // src/SteinAPI.php
 class SteinAPI {
     private $baseUrl = "https://stein.app/api/api/ext";
-    private $buId;
+    private $buId; //
     private $apiKey;
-    private $lastRequestTime = 0;
+    private $lastRequestTime = 0; 
     private $assets = []; 
     
     public function __construct($buId, $apiKey) {
