@@ -13,6 +13,7 @@ services:
     environment:
       - APACHE_RUN_USER=www-data
       - APACHE_RUN_GROUP=www-data
+      - TZ=Europe/Berlin  # timezone setting
     volumes:
       #- ./divera-stein-sync:/var/www/html
       - ./logs:/var/www/html/logs
@@ -30,6 +31,7 @@ services:
       MARIADB_DATABASE: divera_stein_sync
       MARIADB_USER: syncuser
       MARIADB_PASSWORD: syncpassword
+      TZ: Europe/Berlin
     ports:
       - "3306:3306"
     volumes:
