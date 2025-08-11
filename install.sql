@@ -1,7 +1,3 @@
-
-// ===================================
-// install.sql - Datenbank-Schema
-// ===================================
 -- Erstelle Datenbank
 CREATE DATABASE IF NOT EXISTS divera_stein_sync 
 CHARACTER SET utf8mb4 
