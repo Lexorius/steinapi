@@ -11,6 +11,18 @@ class SyncManager {
         $this->steinApi = $steinApi;
         $this->diveraApi = $diveraApi;
         $this->loadSyncConfig();
+        
+        // Set timezone to Europe/Berlin
+        date_default_timezone_set('Europe/Berlin');
+        
+        // Also set MySQL timezone
+        try {
+            $this->db->exec("SET time_zone = '+01:00'"); // CET
+            // For DST aware: $this->db->exec("SET time_zone = 'Europe/Berlin'");
+        } catch (Exception $e) {
+            // If timezone tables are not loaded, use offset
+            error_log("Could not set MySQL timezone: " . $e->getMessage());
+        }
     }
     
     private function loadSyncConfig() {
@@ -20,7 +32,11 @@ class SyncManager {
     
     public function sync($direction = 'both') {
         $results = [];
-        $syncStartTime = date('Y-m-d H:i:s');
+        
+        // Use Europe/Berlin timezone
+        $timezone = new DateTimeZone('Europe/Berlin');
+        $syncStartTime = new DateTime('now', $timezone);
+        $syncStartTimeString = $syncStartTime->format('Y-m-d H:i:s');
         
         // Get data from both systems
         $diveraData = $this->diveraApi->getVehicleStatus();
@@ -75,7 +91,7 @@ class SyncManager {
         }
         
         // Update system_status with last sync time
-        $this->updateSystemStatus($syncStartTime, count($results));
+        $this->updateSystemStatus($syncStartTimeString, count($results));
         
         return $results;
     }
@@ -91,7 +107,10 @@ class SyncManager {
         ];
         
         $diveraTs = $diveraAsset['fmsstatus_ts'];
-        $steinTs = strtotime($steinAsset['lastModified']);
+        
+        // Convert Stein timestamp to Europe/Berlin timezone
+        $steinDateTime = new DateTime($steinAsset['lastModified'], new DateTimeZone('Europe/Berlin'));
+        $steinTs = $steinDateTime->getTimestamp();
         
         $syncToDivera = false;
         $syncToStein = false;
@@ -339,7 +358,11 @@ class SyncManager {
         
         if ($result) {
             $this->logSync($result);
-            $this->updateSystemStatus(date('Y-m-d H:i:s'), 1);
+            
+            // Use Europe/Berlin timezone for update
+            $timezone = new DateTimeZone('Europe/Berlin');
+            $syncTime = new DateTime('now', $timezone);
+            $this->updateSystemStatus($syncTime->format('Y-m-d H:i:s'), 1);
         }
         
         return $result;
