@@ -5,7 +5,7 @@ class SteinAPI {
     private $buId;
     private $apiKey;
     private $lastRequestTime = 0;
-    private $assets = [];
+    private $assets = []; 
     
     public function __construct($buId, $apiKey) {
         $this->buId = $buId;

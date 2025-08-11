@@ -1,7 +1,7 @@
 <?php 
 class DiveraAPI {
     private $baseUrl = "https://app.divera247.com/api/v2/";
-    private $accessKey;
+    private $accessKey; 
     
     const FMS_STEIN_MAP = [
         1 => 'semiready',
