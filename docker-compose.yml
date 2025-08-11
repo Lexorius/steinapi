@@ -22,7 +22,8 @@ services:
     networks:
       - sync-network
     restart: unless-stopped
-
+    env_file:
+      - .env
   db:
     image: mariadb:11.2
     container_name: divera-stein-mariadb
