@@ -14,7 +14,7 @@ services:
       - APACHE_RUN_USER=www-data
       - APACHE_RUN_GROUP=www-data
     volumes:
-      - ./divera-stein-sync:/var/www/html
+      #- ./divera-stein-sync:/var/www/html
       - ./logs:/var/www/html/logs
     depends_on:
       - db
