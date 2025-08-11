@@ -1,0 +1,20 @@
+
+# Aktiviere Rewrite Engine
+RewriteEngine On
+
+# Blockiere direkten Zugriff auf PHP-Dateien außer api.php und index.html
+RewriteRule ^(src|config)/.*\.(php|json)$ - [F,L]
+
+# Setze Sicherheits-Header
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Verhindere Directory Listing
+Options -Indexes
+
+# Error Documents
+ErrorDocument 403 /error/403.html
+ErrorDocument 404 /error/404.html
