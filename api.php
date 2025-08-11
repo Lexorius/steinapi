@@ -38,7 +38,7 @@ try {
                 ORDER BY created_at DESC 
                 LIMIT ?
             ");
-            $stmt->execute([$limit]);
+            $stmt->execute($limit);
             echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
             break;
             
