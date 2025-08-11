@@ -9,7 +9,7 @@ RUN apt-get install -y libzip-dev zip unzip git
 RUN apt-get install -y curl cron 
 RUN apt-get install -y supervisor 
 RUN apt-get install -y libicu-dev 
-RUN apt-get install -y libonig-dev 
+RUN apt-get install -y libonig-dev default-mysql-client
 
 # Install PHP extensions with optimizations for PHP 8.4
 RUN docker-php-ext-install \
