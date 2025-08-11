@@ -57,9 +57,9 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 777 /var/www/html/logs
 
 # Create cron job for automatic sync
-RUN echo "*/5 * * * * www-data /usr/local/bin/php /var/www/html/cron.php >> /var/www/html/logs/cron.log 2>&1" > /etc/cron.d/sync-cron \
-    && chmod 0644 /etc/cron.d/sync-cron \
-    && crontab /etc/cron.d/sync-cron
+
+RUN echo "*/5 * * * * /usr/local/bin/php /var/www/html/cron.php >> /var/www/html/logs/cron.log 2>&1" > /sync-cron 
+RUN crontab /sync-cron
 
 # Copy supervisor configuration
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
