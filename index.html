@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Divera-Stein Sync Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-title {
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .card-subtitle {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .sync-controls {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        select, button {
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 2px solid #e1e4e8;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .sync-config {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .config-title {
+            font-size: 1.4em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .field-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .field-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f6f8fa;
+            border-radius: 8px;
+        }
+        
+        .field-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .field-item label {
+            cursor: pointer;
+            color: #555;
+        }
+        
+        .log-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .log-title {
+            font-size: 1.4em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .log-table {
+            width: 100%;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f6f8fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #e1e4e8;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e1e4e8;
+        }
+        
+        tr:hover {
+            background: #f6f8fa;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            background: #d4f4dd;
+            color: #2e7d32;
+        }
+        
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .direction-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background: #d4f4dd;
+            color: #2e7d32;
+            border: 1px solid #a3d9a5;
+        }
+        
+        .alert-error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .icon {
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚒 Divera-Stein Sync Dashboard</h1>
+            <div class="subtitle">Echtzeit-Synchronisation zwischen Divera247 und Stein.app</div>
+        </header>
+        
+        <div id="alertContainer"></div>
+        
+        <div class="dashboard-grid">
+            <div class="card">
+                <div class="card-title">
+                    <span>📊</span> Gesamt Synchronisationen
+                </div>
+                <div class="card-value" id="totalSyncs">0</div>
+                <div class="card-subtitle">Letzte 24 Stunden</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">
+                    <span>✅</span> Erfolgreiche Syncs
+                </div>
+                <div class="card-value" id="successfulSyncs">0</div>
+                <div class="card-subtitle">Erfolgsrate: <span id="successRate">0%</span></div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">
+                    <span>🚗</span> Synchronisierte Fahrzeuge
+                </div>
+                <div class="card-value" id="vehiclesSynced">0</div>
+                <div class="card-subtitle">Verschiedene Fahrzeuge</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">
+                    <span>🕐</span> Letzte Synchronisation
+                </div>
+                <div class="card-value" id="lastSyncTime" style="font-size: 1.2em;">Nie</div>
+                <div class="card-subtitle" id="lastSyncAgo"></div>
+            </div>
+        </div>
+        
+        <div class="sync-controls">
+            <h2 style="margin-bottom: 20px; color: #333;">Manuelle Synchronisation</h2>
+            <div class="control-group">
+                <label for="syncDirection">Richtung:</label>
+                <select id="syncDirection">
+                    <option value="both">Bidirektional (Neueste Daten gewinnen)</option>
+                    <option value="divera">Nur nach Divera</option>
+                    <option value="stein">Nur nach Stein</option>
+                </select>
+                
+                <button id="syncButton" onclick="performSync()">
+                    Jetzt synchronisieren
+                </button>
+                
+                <label>
+                    <input type="checkbox" id="autoSync" onchange="toggleAutoSync()">
+                    Auto-Sync alle 5 Minuten
+                </label>
+            </div>
+        </div>
+        
+        <div class="sync-config">
+            <h2 class="config-title">Feldkonfiguration</h2>
+            <p style="margin-bottom: 20px; color: #666;">Wählen Sie die Felder aus, die von Divera nach Stein synchronisiert werden sollen:</p>
+            <div class="field-list" id="fieldConfig">
+                <div class="field-item">
+                    <input type="checkbox" id="field_status" checked onchange="updateFieldConfig('status', this.checked)">
+                    <label for="field_status">Status</label>
+                </div>
+                <div class="field-item">
+                    <input type="checkbox" id="field_comment" checked onchange="updateFieldConfig('comment', this.checked)">
+                    <label for="field_comment">Kommentar/Notiz</label>
+                </div>
+                <div class="field-item">
+                    <input type="checkbox" id="field_position" onchange="updateFieldConfig('position', this.checked)">
+                    <label for="field_position">Position (GPS)</label>
+                </div>
+                <div class="field-item">
+                    <input type="checkbox" id="field_crew" onchange="updateFieldConfig('crew', this.checked)">
+                    <label for="field_crew">Besatzung</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="log-section">
+            <h2 class="log-title">Synchronisations-Log</h2>
+            <div class="log-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zeitpunkt</th>
+                            <th>Fahrzeug</th>
+                            <th>Richtung</th>
+                            <th>Felder</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #999;">Lade Logs...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let autoSyncInterval = null;
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            loadFieldConfig();
+            setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
+        });
+        
+        function loadDashboardData() {
+            fetch('api.php?action=stats')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('totalSyncs').textContent = data.total_syncs || 0;
+                    document.getElementById('successfulSyncs').textContent = data.successful_syncs || 0;
+                    document.getElementById('vehiclesSynced').textContent = data.vehicles_synced || 0;
+                    
+                    const successRate = data.total_syncs > 0 
+                        ? Math.round((data.successful_syncs / data.total_syncs) * 100) 
+                        : 0;
+                    document.getElementById('successRate').textContent = successRate + '%';
+                    
+                    if (data.last_sync) {
+                        const lastSync = new Date(data.last_sync);
+                        document.getElementById('lastSyncTime').textContent = lastSync.toLocaleString('de-DE');
+                        
+                        const ago = getTimeAgo(lastSync);
+                        document.getElementById('lastSyncAgo').textContent = ago;
+                    }
+                });
+            
+            loadSyncLogs();
+        }
+        
+        function loadSyncLogs() {
+            fetch('api.php?action=logs&limit=20')
+                .then(response => response.json())
+                .then(logs => {
+                    const tbody = document.getElementById('logTableBody');
+                    
+                    if (logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">Keine Logs vorhanden</td></tr>';
+                        return;
+                    }
+                    
+                    tbody.innerHTML = logs.map(log => `
+                        <tr>
+                            <td>${new Date(log.created_at).toLocaleString('de-DE')}</td>
+                            <td><strong>${log.vehicle_name}</strong></td>
+                            <td><span class="direction-badge">${formatDirection(log.sync_direction)}</span></td>
+                            <td>${formatFields(log.fields_synced)}</td>
+                            <td>
+                                <span class="status-badge ${log.success == 1 ? 'status-success' : 'status-error'}">
+                                    ${log.success == 1 ? 'Erfolgreich' : 'Fehler'}
+                                </span>
+                            </td>
+                            <td>${log.error_message || '-'}</td>
+                        </tr>
+                    `).join('');
+                });
+        }
+        
+        function performSync() {
+            const button = document.getElementById('syncButton');
+            const direction = document.getElementById('syncDirection').value;
+            
+            button.disabled = true;
+            button.innerHTML = 'Synchronisiere... <span class="loading"></span>';
+            
+            fetch('api.php?action=sync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({direction: direction})
+            })
+            .then(response => response.json())
+            .then(data => {
+                button.disabled = false;
+                button.textContent = 'Jetzt synchronisieren';
+                
+                if (data.success) {
+                    showAlert('success', `Synchronisation erfolgreich! ${data.synced_count} Fahrzeuge synchronisiert.`);
+                } else {
+                    showAlert('error', 'Fehler bei der Synchronisation: ' + (data.error || 'Unbekannter Fehler'));
+                }
+                
+                loadDashboardData();
+            })
+            .catch(error => {
+                button.disabled = false;
+                button.textContent = 'Jetzt synchronisieren';
+                showAlert('error', 'Netzwerkfehler: ' + error.message);
+            });
+        }
+        
+        function toggleAutoSync() {
+            const checkbox = document.getElementById('autoSync');
+            
+            if (checkbox.checked) {
+                autoSyncInterval = setInterval(performSync, 5 * 60 * 1000); // 5 minutes
+                showAlert('success', 'Auto-Sync aktiviert - Synchronisation alle 5 Minuten');
+            } else {
+                clearInterval(autoSyncInterval);
+                autoSyncInterval = null;
+                showAlert('success', 'Auto-Sync deaktiviert');
+            }
+        }
+        
+        function loadFieldConfig() {
+            fetch('api.php?action=fieldConfig')
+                .then(response => response.json())
+                .then(config => {
+                    config.forEach(field => {
+                        const checkbox = document.getElementById('field_' + field.field_name);
+                        if (checkbox) {
+                            checkbox.checked = field.active == 1;
+                        }
+                    });
+                });
+        }
+        
+        function updateFieldConfig(fieldName, active) {
+            fetch('api.php?action=updateField', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    field: fieldName,
+                    active: active
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', `Feld "${fieldName}" wurde ${active ? 'aktiviert' : 'deaktiviert'}`);
+                }
+            });
+        }
+        
+        function showAlert(type, message) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            
+            if (seconds < 60) return 'vor wenigen Sekunden';
+            if (seconds < 3600) return `vor ${Math.floor(seconds / 60)} Minuten`;
+            if (seconds < 86400) return `vor ${Math.floor(seconds / 3600)} Stunden`;
+            return `vor ${Math.floor(seconds / 86400)} Tagen`;
+        }
+        
+        function formatDirection(direction) {
+            const directions = {
+                'stein_to_divera': 'Stein → Divera',
+                'divera_to_stein': 'Divera → Stein',
+                'both': 'Bidirektional'
+            };
+            return directions[direction] || direction;
+        }
+        
+        function formatFields(fieldsJson) {
+            try {
+                const fields = JSON.parse(fieldsJson);
+                return fields.join(', ');
+            } catch {
+                return fieldsJson || '-';
+            }
+        }
+    </script>
+</body>
+</html>

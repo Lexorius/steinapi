@@ -1,0 +1,64 @@
+
+# ================================
+# docker-compose.yml
+# ================================
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: divera-stein-sync
+    ports:
+      - "8080:80"
+    environment:
+      - APACHE_RUN_USER=www-data
+      - APACHE_RUN_GROUP=www-data
+    volumes:
+      - ./divera-stein-sync:/var/www/html
+      - ./logs:/var/www/html/logs
+    depends_on:
+      - db
+    networks:
+      - sync-network
+    restart: unless-stopped
+
+  db:
+    image: mariadb:11.2
+    container_name: divera-stein-mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: divera_stein_sync
+      MARIADB_USER: syncuser
+      MARIADB_PASSWORD: syncpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ./install.sql:/docker-entrypoint-initdb.d/01-init.sql
+    networks:
+      - sync-network
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: divera-stein-phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    networks:
+      - sync-network
+    restart: unless-stopped
+
+volumes:
+  mariadb-data:
+
+networks:
+  sync-network:
+    driver: bridge
