@@ -487,7 +487,12 @@
         
         function loadDashboardData() {
             fetch('api.php?action=stats')
-                .then(response => response.json())
+                .then(response => {
+                    if (response.status === 401) {
+                        showAlert('error', 'Anmeldung erforderlich. Bitte Seite neu laden und Zugangsdaten eingeben.');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     // Update dashboard cards
                     document.getElementById('totalSyncs').textContent = data.total_syncs || 0;
@@ -534,18 +539,20 @@
                         return;
                     }
                     
+                    // Alle Werte aus der API stammen letztlich von Divera/Stein (Fahrzeugnamen,
+                    // Fehlermeldungen) und werden deshalb vor dem Einfügen in innerHTML escaped.
                     tbody.innerHTML = logs.map(log => `
                         <tr>
-                            <td>${new Date(log.created_at).toLocaleString('de-DE')}</td>
-                            <td><strong>${log.vehicle_name}</strong></td>
-                            <td><span class="direction-badge">${formatDirection(log.sync_direction)}</span></td>
-                            <td>${formatFields(log.fields_synced)}</td>
+                            <td>${escapeHtml(new Date(log.created_at).toLocaleString('de-DE'))}</td>
+                            <td><strong>${escapeHtml(log.vehicle_name)}</strong></td>
+                            <td><span class="direction-badge">${escapeHtml(formatDirection(log.sync_direction))}</span></td>
+                            <td>${escapeHtml(formatFields(log.fields_synced))}</td>
                             <td>
                                 <span class="status-badge ${log.success == 1 ? 'status-success' : 'status-error'}">
                                     ${log.success == 1 ? 'Erfolgreich' : 'Fehler'}
                                 </span>
                             </td>
-                            <td>${log.error_message || '-'}</td>
+                            <td>${escapeHtml(log.error_message || '-')}</td>
                         </tr>
                     `).join('');
                 })
@@ -757,6 +764,15 @@
             });
         }
         
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function showAlert(type, message) {
             const container = document.getElementById('alertContainer');
             const alert = document.createElement('div');

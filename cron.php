@@ -1,4 +1,11 @@
 <?php
+// Nur per CLI/Cron ausfuehrbar - ueber den Webserver aufgerufen koennte sonst
+// jeder unauthentifiziert eine Synchronisation und die Log-Bereinigung ausloesen.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 require_once 'config/Database.php';
 require_once 'src/SteinAPI.php';
 require_once 'src/DiveraAPI.php';

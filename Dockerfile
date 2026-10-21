@@ -28,6 +28,10 @@ RUN docker-php-ext-install \
     opcache \
     && docker-php-ext-enable pdo_mysql opcache
 
+# Produktions-php.ini aktivieren: ohne php.ini gilt PHP-Default display_errors=On,
+# womit Fehlermeldungen (Pfade, SQL, Hostnamen) an den Client gehen.
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
 # Configure PHP 8.4 optimizations
 RUN { \
     echo 'opcache.memory_consumption=128'; \
@@ -53,6 +57,10 @@ RUN { \
     echo 'max_input_vars=200'; \
     echo 'session.upload_progress.enabled=0'; \
     echo 'expose_php=Off'; \
+    echo 'display_errors=Off'; \
+    echo 'display_startup_errors=Off'; \
+    echo 'log_errors=On'; \
+    echo 'allow_url_include=Off'; \
 } > /usr/local/etc/php/conf.d/zz-security-hardening.ini
 
 # Enable Apache modules

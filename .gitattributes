@@ -1,0 +1,6 @@
+# Shell-Skripte und Docker-Dateien immer mit LF auschecken. Mit CRLF
+# (Windows-Checkout mit core.autocrlf=true) startet docker-entrypoint.sh
+# im Container nicht ("/bin/bash^M: bad interpreter").
+*.sh text eol=lf
+Dockerfile text eol=lf
+.htaccess text eol=lf

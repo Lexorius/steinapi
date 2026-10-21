@@ -1,5 +1,11 @@
 <?php
 // cleanup.php - Log cleanup script
+// Nur per CLI/Cron ausfuehrbar, nicht ueber den Webserver.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 require_once '/var/www/html/config/Database.php';
 
 $config = require '/var/www/html/config/config.php';

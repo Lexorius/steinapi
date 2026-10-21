@@ -22,12 +22,15 @@ cd divera-stein-sync
 # 2. Installation starten
 make install
 
-# 3. .env Datei bearbeiten und API-Keys eintragen
+# 3. .env Datei bearbeiten: API-Keys und DASHBOARD_PASSWORD eintragen
 nano .env
 
 # 4. Container neu starten
 make restart
 ```
+
+Ohne `DASHBOARD_PASSWORD` ist die API ohne Anmeldung erreichbar; der Container
+gibt beim Start eine Warnung aus.
 
 ### Installation ohne Make
 ```bash
@@ -48,9 +51,13 @@ docker-compose logs -f
 
 | Service | Port | Beschreibung |
 |---------|------|-------------|
-| Web App (PHP 8.4.27) | 8080 | Hauptanwendung mit Dashboard |
-| MariaDB 11.2 | 3306 | Datenbank |
-| phpMyAdmin | 8081 | Datenbank-Verwaltung |
+| Web App (PHP 8.4.27) | 8080 | Hauptanwendung mit Dashboard (Basic-Auth) |
+| MariaDB 11.2 | 127.0.0.1:3306 | Datenbank, nur vom Docker-Host erreichbar |
+| phpMyAdmin | 127.0.0.1:8081 | Datenbank-Verwaltung, nur vom Docker-Host erreichbar |
+
+MariaDB und phpMyAdmin sind bewusst nur an `127.0.0.1` gebunden (phpMyAdmin
+meldet sich als DB-root an). Für Zugriff von anderen Rechnern einen SSH-Tunnel
+nutzen oder die Port-Bindung in `compose.yml` bewusst ändern.
 
 ## 🔧 Befehle
 
@@ -79,10 +86,12 @@ docker-compose exec db mariadb -u root -prootpassword
 ## 🔐 Sicherheit
 
 ### Produktion
-1. Ändern Sie alle Passwörter in `.env`
+1. Ändern Sie alle Passwörter in `.env`, insbesondere `DASHBOARD_PASSWORD`
 2. Verwenden Sie Docker Secrets für sensible Daten
-3. Aktivieren Sie SSL/TLS mit einem Reverse Proxy
+3. Aktivieren Sie SSL/TLS mit einem Reverse Proxy (Basic-Auth überträgt
+   Zugangsdaten sonst im Klartext)
 4. Beschränken Sie Port-Zugriffe
+5. Die `.env` nie committen (steht in `.gitignore`); Vorlage ist `.env.example`
 
 ### SSL mit Traefik (Beispiel)
 ```yaml

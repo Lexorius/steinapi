@@ -28,7 +28,9 @@ services:
       MARIADB_PASSWORD: syncpassword
       TZ: Europe/Berlin
     ports:
-      - "3306:3306"
+      # Nur auf localhost binden: die DB (root-Zugang) muss nicht aus dem Netz
+      # erreichbar sein. Fuer externen Zugriff bewusst auf "3306:3306" aendern.
+      - "127.0.0.1:3306:3306"
     volumes:
       - mariadb-data:/var/lib/mysql
       - ./install.sql:/docker-entrypoint-initdb.d/01-init.sql
@@ -46,7 +48,8 @@ services:
       PMA_USER: root
       PMA_PASSWORD: rootpassword
     ports:
-      - "8081:80"
+      # phpMyAdmin mit DB-root-Login ohne eigene Absicherung: nur auf localhost
+      - "127.0.0.1:8081:80"
     depends_on:
       - db
     networks:

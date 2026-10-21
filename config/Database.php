@@ -15,7 +15,9 @@ class Database {
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
             );
         } catch (PDOException $e) {
-            die("Connection failed: " . $e->getMessage());
+            // Details nur ins Server-Log, nie an den Client (enthaelt Host/User)
+            error_log('Database connection failed: ' . $e->getMessage());
+            throw new RuntimeException('Database connection failed');
         }
     }
     

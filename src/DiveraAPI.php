@@ -30,8 +30,11 @@ class DiveraAPI {
         
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        
+        // TLS-Zertifikat wird geprueft (curl-Default). Vorher stand hier
+        // CURLOPT_SSL_VERIFYPEER=false, womit der Access-Key per MITM abgreifbar war.
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
         if ($method === 'POST' && $data) {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
@@ -39,9 +42,14 @@ class DiveraAPI {
         }
         
         $response = curl_exec($ch);
+        $curlError = curl_error($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        
+
+        if ($response === false) {
+            throw new Exception("Divera API request failed: $curlError");
+        }
+
         if ($httpCode !== 200) {
             throw new Exception("Divera API request failed with code $httpCode");
         }

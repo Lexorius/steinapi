@@ -2,14 +2,28 @@
 # Aktiviere Rewrite Engine
 RewriteEngine On
 
+# Authorization-Header an PHP durchreichen (noetig fuer Basic-Auth bei
+# CGI/FastCGI-Setups; unter mod_php ohne Wirkung)
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # Blockiere direkten Zugriff auf PHP-Dateien außer api.php und index.html
 RewriteRule ^(src|config)/.*\.(php|json)$ - [F,L]
+
+# Log-, Backup- und Cache-Verzeichnisse nie ausliefern
+RewriteRule ^(logs|backups|cache)(/|$) - [F,L]
+
+# Zugangsdaten, CLI-Skripte und Build-/Deploy-Dateien nie ausliefern.
+# cron.php und cleanup.php laufen nur per CLI (zusaetzlich im Skript geprueft).
+<FilesMatch "^(\.env.*|\.git.*|\.dockerignore|\.initialized|cron\.php|cleanup\.php|cron-env\.sh|Makefile|Dockerfile|supervisord\.conf|.*\.(sh|sql|yml|yaml|md|bak|log|ini))$">
+    Require all denied
+</FilesMatch>
 
 # Setze Sicherheits-Header
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "DENY"
-    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "no-referrer"
 </IfModule>
 
 # Verhindere Directory Listing

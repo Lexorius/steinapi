@@ -14,6 +14,12 @@ return [
         'buname' => intval(getenv('STEIN_BU_ID') ?: 12345),
         'apikey' => getenv('STEIN_API_KEY') ?: 'your_stein_api_key'
     ],
+    // HTTP-Basic-Auth fuer api.php. Aktiv, sobald ein Passwort gesetzt ist.
+    // Ohne Passwort ist die API offen - nur in abgeschotteten Netzen vertretbar.
+    'auth' => [
+        'user' => getenv('DASHBOARD_USER') ?: 'admin',
+        'password' => getenv('DASHBOARD_PASSWORD') ?: ''
+    ],
     'sync' => [
         'auto_sync_interval' => 300,
         'log_retention_days' => 30,

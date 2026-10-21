@@ -1,0 +1,13 @@
+# Zugangsdaten (Vorlage ist .env.example)
+.env
+.env.local
+
+# Laufzeitdaten
+logs/
+backups/
+cache/
+.initialized
+
+# OS / IDE
+.DS_Store
+Thumbs.db

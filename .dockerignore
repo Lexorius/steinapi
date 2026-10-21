@@ -3,10 +3,23 @@
 # ================================
 .git
 .gitignore
+.gitattributes
 *.md
 .DS_Store
 node_modules/
 npm-debug.log
 docker-compose.override.yml
-.env.local
-logs/*.log
+
+# Zugangsdaten und Laufzeitdaten gehoeren nie ins Image (COPY . wuerde sie
+# sonst in den Webroot legen)
+.env
+.env.*
+logs/
+backups/
+cache/
+.initialized
+
+# Nur fuer den Host, nicht fuer den Container
+compose.yml
+docker-compose*.yml
+Makefile

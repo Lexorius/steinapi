@@ -2,6 +2,14 @@
 # docker-entrypoint.sh
 set -e
 
+# DB-Passwort ueber die Umgebung an den mysql-Client geben statt per -p auf der
+# Kommandozeile, wo es fuer jeden Prozess im Container per ps sichtbar waere.
+export MYSQL_PWD="${DB_PASSWORD:-syncpassword}"
+
+# Verzeichnis ausserhalb des Webroots fuer Dateien mit Zugangsdaten
+SECRETS_DIR=/etc/divera-sync
+mkdir -p "$SECRETS_DIR"
+
 echo "Starting Divera-Stein Sync Container..."
 echo "========================================="
 
@@ -12,7 +20,7 @@ wait_for_db() {
     local attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        if mysql -h"${DB_HOST:-db}" -u"${DB_USER:-syncuser}" -p"${DB_PASSWORD:-syncpassword}" -e "SELECT 1" &>/dev/null; then
+        if mysql -h"${DB_HOST:-db}" -u"${DB_USER:-syncuser}" -e "SELECT 1" &>/dev/null; then
             echo "✅ Database connection successful!"
             return 0
         fi
@@ -28,7 +36,7 @@ wait_for_db() {
 
 # Function to check if database is initialized
 check_db_initialized() {
-    mysql -h"${DB_HOST:-db}" -u"${DB_USER:-syncuser}" -p"${DB_PASSWORD:-syncpassword}" \
+    mysql -h"${DB_HOST:-db}" -u"${DB_USER:-syncuser}" \
         "${DB_NAME:-divera_stein_sync}" -e "SELECT COUNT(*) FROM system_status" &>/dev/null
     return $?
 }
@@ -41,11 +49,11 @@ initialize_database() {
         echo "   Found install.sql, importing..."
         
         # First create database if it doesn't exist
-        mysql -h"${DB_HOST:-db}" -u"${DB_USER:-syncuser}" -p"${DB_PASSWORD:-syncpassword}" \
+        mysql -h"${DB_HOST:-db}" -u"${DB_USER:-syncuser}" \
             -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME:-divera_stein_sync} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null || true
-        
+
         # Import the install.sql
-        if mysql -h"${DB_HOST:-db}" -u"${DB_USER:-syncuser}" -p"${DB_PASSWORD:-syncpassword}" \
+        if mysql -h"${DB_HOST:-db}" -u"${DB_USER:-syncuser}" \
             "${DB_NAME:-divera_stein_sync}" < /var/www/html/install.sql; then
             echo "✅ Database structure created successfully!"
             return 0
@@ -77,7 +85,7 @@ fi
 
 # Verify database structure
 echo "🔍 Verifying database structure..."
-TABLES_CHECK=$(mysql -h"${DB_HOST:-db}" -u"${DB_USER:-syncuser}" -p"${DB_PASSWORD:-syncpassword}" \
+TABLES_CHECK=$(mysql -h"${DB_HOST:-db}" -u"${DB_USER:-syncuser}" \
     "${DB_NAME:-divera_stein_sync}" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME:-divera_stein_sync}' AND table_name IN ('sync_log', 'sync_config', 'system_status')" 2>/dev/null || echo "0")
 
 if [ "$TABLES_CHECK" -eq "3" ]; then
@@ -113,6 +121,10 @@ return [
         'buname' => ${STEIN_BU_ID:-12345},
         'apikey' => '${STEIN_API_KEY:-your_stein_api_key}'
     ],
+    'auth' => [
+        'user' => '${DASHBOARD_USER:-admin}',
+        'password' => '${DASHBOARD_PASSWORD:-}'
+    ],
     'sync' => [
         'auto_sync_interval' => ${SYNC_INTERVAL:-300},
         'log_retention_days' => ${LOG_RETENTION_DAYS:-30},
@@ -133,9 +145,18 @@ if [ "${STEIN_API_KEY}" = "your_stein_api_key" ] || [ -z "${STEIN_API_KEY}" ]; t
     echo "⚠️  WARNING: STEIN_API_KEY not set or using default value!"
 fi
 
+if [ -z "${DASHBOARD_PASSWORD}" ]; then
+    echo "⚠️  WARNING: DASHBOARD_PASSWORD not set - api.php is reachable WITHOUT authentication!"
+fi
+
+# Altlast entfernen: fruehere Versionen legten diese Datei mit allen Zugangsdaten
+# im Webroot ab, wo Apache sie als Klartext auslieferte.
+rm -f /var/www/html/cron-env.sh
+
 # Also create a shell script with exports for cron environment
+# (ausserhalb des Webroots, nur fuer www-data lesbar)
 echo "📝 Creating cron environment file..."
-cat > /var/www/html/cron-env.sh << EOF
+cat > "$SECRETS_DIR/cron-env.sh" << EOF
 #!/bin/bash
 # Environment variables for cron jobs
 export DB_HOST="${DB_HOST:-db}"
@@ -145,11 +166,14 @@ export DB_PASSWORD="${DB_PASSWORD:-syncpassword}"
 export DIVERA_ACCESS_KEY="${DIVERA_ACCESS_KEY:-your_divera_access_key}"
 export STEIN_BU_ID="${STEIN_BU_ID:-12345}"
 export STEIN_API_KEY="${STEIN_API_KEY:-your_stein_api_key}"
+export DASHBOARD_USER="${DASHBOARD_USER:-admin}"
+export DASHBOARD_PASSWORD="${DASHBOARD_PASSWORD:-}"
 export TZ="${TZ:-Europe/Berlin}"
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 EOF
 
-chmod +x /var/www/html/cron-env.sh
+chown www-data:www-data "$SECRETS_DIR/cron-env.sh"
+chmod 0500 "$SECRETS_DIR/cron-env.sh"
 
 # Create cron job with environment variables
 echo "⏰ Setting up cron jobs..."
@@ -159,13 +183,13 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Run sync every 5 minutes
-*/5 * * * * www-data /bin/bash -c 'source /var/www/html/cron-env.sh && /usr/local/bin/php /var/www/html/cron.php >> /var/www/html/logs/cron.log 2>&1'
+*/5 * * * * www-data /bin/bash -c 'source $SECRETS_DIR/cron-env.sh && /usr/local/bin/php /var/www/html/cron.php >> /var/www/html/logs/cron.log 2>&1'
 
 # Clean old logs daily at 2 AM
-0 2 * * * www-data /bin/bash -c 'source /var/www/html/cron-env.sh && /usr/local/bin/php /var/www/html/cleanup.php >> /var/www/html/logs/cleanup.log 2>&1'
+0 2 * * * www-data /bin/bash -c 'source $SECRETS_DIR/cron-env.sh && /usr/local/bin/php /var/www/html/cleanup.php >> /var/www/html/logs/cleanup.log 2>&1'
 
-# Health check every hour
-0 * * * * www-data /bin/bash -c 'source /var/www/html/cron-env.sh && curl -s http://localhost/api.php?action=health >> /var/www/html/logs/health.log 2>&1'
+# Health check every hour (mit Basic-Auth, falls DASHBOARD_PASSWORD gesetzt ist)
+0 * * * * www-data /bin/bash -c 'source $SECRETS_DIR/cron-env.sh && curl -s -u "\$DASHBOARD_USER:\$DASHBOARD_PASSWORD" http://localhost/api.php?action=health >> /var/www/html/logs/health.log 2>&1'
 EOF
 
 chmod 0644 /etc/cron.d/sync-cron
@@ -184,6 +208,8 @@ chown -R www-data:www-data /var/www/html
 chmod -R 755 /var/www/html
 chmod -R 777 /var/www/html/logs
 chown www-data:www-data /var/www/html/logs/*.log
+# Generierte Config mit Zugangsdaten nur fuer www-data lesbar
+chmod 0400 /var/www/html/config/config.php
 
 # Test database connection from PHP
 echo "🧪 Testing PHP database connection..."

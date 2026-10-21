@@ -36,8 +36,11 @@ class SteinAPI {
         
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        
+        // TLS-Zertifikat wird geprueft (curl-Default). Vorher stand hier
+        // CURLOPT_SSL_VERIFYPEER=false, womit der API-Key per MITM abgreifbar war.
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
         if ($method === 'PATCH') {
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
             if ($data) {
@@ -46,11 +49,18 @@ class SteinAPI {
         }
         
         $response = curl_exec($ch);
+        $curlError = curl_error($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        
+
+        if ($response === false) {
+            throw new Exception("Stein API request failed: $curlError");
+        }
+
         if ($httpCode !== 200) {
-            throw new Exception("API request failed with code $httpCode: $response");
+            // Antwort kuerzen: sie landet im sync_log und im Dashboard
+            $snippet = mb_substr((string)$response, 0, 200);
+            throw new Exception("Stein API request failed with code $httpCode: $snippet");
         }
         
         return json_decode($response, true);
