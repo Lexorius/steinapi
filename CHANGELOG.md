@@ -3,6 +3,19 @@
 Die Version wird in `api.php` (`APP_VERSION`) gepflegt und über
 `api.php?action=health` ausgeliefert.
 
+## 1.1.1 - 2026-10-21
+
+### Behoben
+
+- `docker-entrypoint.sh` wurde nie ausgeführt: das Dockerfile hatte kein
+  `ENTRYPOINT`, der Container startete direkt supervisord. Folge: kein
+  Cron-Eintrag, der automatische Sync alle 5 Minuten lief nicht, nur der
+  Browser-Timer im Dashboard. Jetzt läuft der Entrypoint vor supervisord
+  (DB-Wartezeit, Tabellen anlegen, `config.php` und Cron-Jobs aus der
+  Umgebung erzeugen) und übergibt per `exec` an supervisord.
+- Entrypoint nutzt `mariadb`, wenn kein `mysql`-Wrapper installiert ist
+  (Debian trixie).
+
 ## 1.1.0 - 2026-10-21
 
 Sicherheits-Release. Nach dem Update Container neu bauen (`make build && make up`)

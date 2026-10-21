@@ -8,7 +8,7 @@ require_once 'src/SyncManager.php';
 // Anwendungsversion. Wird ueber action=health ausgeliefert, damit z. B. die
 // Home-Assistant-Integration ein Update erkennen kann. Bei jedem Release
 // anheben und einen Eintrag in CHANGELOG.md ergaenzen.
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 
 const ALLOWED_SYNC_DIRECTIONS = ['both', 'divera', 'stein'];
 const ALLOWED_SYNC_FIELDS = ['status', 'comment', 'position', 'crew'];

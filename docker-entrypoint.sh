@@ -10,6 +10,15 @@ export MYSQL_PWD="${DB_PASSWORD:-syncpassword}"
 SECRETS_DIR=/etc/divera-sync
 mkdir -p "$SECRETS_DIR"
 
+# Debian trixie liefert den Client als "mariadb"; den "mysql"-Wrapper gibt es
+# nur noch ueber ein Kompatibilitaetspaket. Beides unterstuetzen.
+MYSQL_CLI=$(command -v mariadb || command -v mysql || true)
+if [ -z "$MYSQL_CLI" ]; then
+    echo "❌ Kein MariaDB/MySQL-Client im Image gefunden (default-mysql-client fehlt?)"
+    exit 1
+fi
+mysql() { "$MYSQL_CLI" "$@"; }
+
 echo "Starting Divera-Stein Sync Container..."
 echo "========================================="
 
@@ -231,9 +240,9 @@ try {
 # Mark as initialized
 touch /var/www/html/.initialized
 
-# Start cron service
-echo "🚀 Starting cron service..."
-service cron start
+# Cron wird nicht hier gestartet, sondern von supervisord (cron -f),
+# siehe supervisord.conf. Ein zusaetzlicher "service cron start" wuerde
+# einen zweiten Daemon erzeugen.
 
 # Show final status
 echo ""
@@ -246,6 +255,12 @@ echo "📁 Logs: /var/www/html/logs/"
 echo "========================================="
 echo ""
 
-# Start Apache in foreground
+# An CMD uebergeben (supervisord startet Apache und Cron). Faellt auf
+# apache2-foreground zurueck, wenn der Container ohne CMD gestartet wird.
+if [ "$#" -gt 0 ]; then
+    echo "🌐 Starting: $*"
+    exec "$@"
+fi
+
 echo "🌐 Starting Apache web server..."
 exec apache2-foreground

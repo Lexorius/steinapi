@@ -183,12 +183,19 @@ docker network inspect divera-stein-sync_sync-network
 ```
 
 ### Cron läuft nicht
+Cron wird von supervisord gestartet, nicht als System-Service.
 ```bash
-# Cron Status
-docker-compose exec web service cron status
+# Status von Apache und Cron
+docker compose exec web supervisorctl status
 
-# Cron manuell starten
-docker-compose exec web service cron start
+# Cron neu starten
+docker compose exec web supervisorctl restart cron
+
+# Wurde der Cron-Job angelegt? (schreibt der Entrypoint beim Start)
+docker compose exec web cat /etc/cron.d/sync-cron
+
+# Sync-Log
+docker compose exec web tail -f /var/www/html/logs/cron.log
 ```
 
 ## 🏗️ Entwicklung

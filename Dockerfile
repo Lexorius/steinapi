@@ -105,5 +105,10 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # Expose port
 EXPOSE 80
 
-# Start supervisor
+# Entrypoint: wartet auf die DB, legt Tabellen an, generiert config.php und die
+# Cron-Jobs aus den Umgebungsvariablen und uebergibt dann per exec an CMD.
+# Ohne diese Zeile lief das Skript nie, der Cron-Sync war damit inaktiv.
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Start supervisor (Apache + Cron)
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
