@@ -8,7 +8,12 @@
 ## Installation
 
 ### 1. Voraussetzungen
-- PHP 7.4 oder höher
+- PHP 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 oder neuer (Docker-Image: 8.4.27)
+  - Ältere Versionen sind von den kritischen RCE-Lücken CVE-2026-109618 und
+    CVE-2026-109619 betroffen (Security Advisory vom 21.10.2026):
+    https://www.php.net/archive/2026.php#2026-10-21-5
+  - PHP 7.4 / 8.0 / 8.1 erhalten keine Upstream-Updates mehr und sollten nicht
+    mehr eingesetzt werden
 - MySQL 5.7 oder höher
 - Webserver (Apache/Nginx)
 - curl PHP Extension
@@ -69,6 +74,11 @@ Im Dashboard können Sie auswählen, welche Felder synchronisiert werden sollen.
 - Alle Konfigurationsdateien sind durch .htaccess geschützt
 - API verwendet Prepared Statements gegen SQL Injection
 - Rate Limiting für externe APIs implementiert
+- Docker-Image läuft auf PHP 8.4.27 (Fix für CVE-2026-109618 / CVE-2026-109619);
+  Datei-Uploads und `session.upload_progress` sind im Container deaktiviert,
+  da die API ausschließlich JSON verarbeitet
+- Nach PHP-Sicherheitsupdates immer `make build` (nutzt `--pull`) und
+  `make up` ausführen, damit das gepatchte Base-Image tatsächlich gezogen wird
 
 ## Support
 

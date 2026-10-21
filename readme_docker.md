@@ -7,7 +7,7 @@
 - Make (optional, für einfachere Befehle)
 
 ### Technologie-Stack
-- **PHP 8.4** (mit JIT-Compiler und OPCache)
+- **PHP 8.4.27** (mit JIT-Compiler und OPCache; gepinnt, enthält den Fix für CVE-2026-109618 / CVE-2026-109619)
 - **MariaDB 11.2** (optimiert für Performance)
 - **Apache 2.4** (mit mod_rewrite)
 - **Supervisor** (Process Management)
@@ -48,7 +48,7 @@ docker-compose logs -f
 
 | Service | Port | Beschreibung |
 |---------|------|-------------|
-| Web App (PHP 8.4) | 8080 | Hauptanwendung mit Dashboard |
+| Web App (PHP 8.4.27) | 8080 | Hauptanwendung mit Dashboard |
 | MariaDB 11.2 | 3306 | Datenbank |
 | phpMyAdmin | 8081 | Datenbank-Verwaltung |
 
@@ -222,6 +222,20 @@ Diese Docker-Konfiguration nutzt die neuesten PHP 8.4 Features:
 - **Property Hooks**: Unterstützung für moderne PHP-Syntax
 - **Improved Type System**: Vollständige Typ-Unterstützung
 - **Performance**: ~15% schneller als PHP 8.1
+
+### Sicherheit
+Das Base-Image ist auf `php:8.4.27-apache` gepinnt. Diese Version behebt die am
+21.10.2026 veröffentlichten kritischen RCE-Lücken CVE-2026-109618 und
+CVE-2026-109619 (betroffen u. a. Apache mod_php):
+https://www.php.net/archive/2026.php#2026-10-21-5
+
+Zusätzlich sind im Container Datei-Uploads und `session.upload_progress`
+deaktiviert und `post_max_size` ist auf 2M begrenzt
+(`/usr/local/etc/php/conf.d/zz-security-hardening.ini`), da die API nur JSON
+über `php://input` entgegennimmt.
+
+Bei künftigen PHP-Updates: Version im `Dockerfile` anheben und mit
+`make build` (verwendet `--pull`) neu bauen.
 
 ## 🗄️ MariaDB Vorteile
 
