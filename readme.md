@@ -51,6 +51,58 @@ Für automatische Synchronisation alle 5 Minuten:
 
 Öffnen Sie `index.html` im Browser für das Dashboard.
 
+## Update
+
+### Docker-Installation
+
+```bash
+git pull
+make build    # baut mit --pull, zieht also auch das aktuelle PHP-Base-Image
+make up
+```
+
+Ohne Make:
+
+```bash
+git pull
+docker compose build --pull
+docker compose up -d
+```
+
+Die Datenbank bleibt im Volume `mariadb-data` erhalten. Vorher sichern:
+
+```bash
+make backup
+```
+
+### Manuelle Installation
+
+1. Datenbank sichern (`mysqldump`)
+2. Neue Dateien auf den Server kopieren, `config/config.php` dabei nicht überschreiben
+3. PHP auf dem Server auf eine gepatchte Version bringen (siehe Voraussetzungen)
+4. Prüfen, ob `install.sql` neue Tabellen oder Spalten enthält, und diese
+   bei Bedarf nachziehen
+
+### Sicherheitsupdate PHP (21.10.2026)
+
+Bestehende Installationen, die vor dem 21.10.2026 aufgesetzt wurden, laufen
+auf einer verwundbaren PHP-Version. Ein `git pull` allein genügt nicht, der
+Container muss neu gebaut und neu gestartet werden:
+
+```bash
+git pull
+make build
+make up
+```
+
+Anschließend prüfen:
+
+```bash
+docker compose exec web php -v
+```
+
+Die Ausgabe muss `PHP 8.4.27` oder neuer zeigen.
+
 ## Verwendung
 
 ### Manuelle Synchronisation

@@ -120,15 +120,37 @@ docker-compose exec web tail -f /var/www/html/logs/cron.log
 ## 🔄 Updates
 
 ```bash
+# Optional: Datenbank sichern
+make backup
+
 # Code aktualisieren
 git pull
 
-# Container neu bauen
-docker-compose build
+# Container neu bauen (--pull zieht auch das aktuelle PHP-Base-Image)
+make build
+# oder ohne Make:
+docker compose build --pull
 
 # Mit neuer Version starten
-docker-compose up -d
+make up
+# oder ohne Make:
+docker compose up -d
 ```
+
+Die Datenbank liegt im Volume `mariadb-data` und bleibt beim Update erhalten.
+
+### PHP-Sicherheitsupdate (21.10.2026)
+
+Container, die vor dem 21.10.2026 gebaut wurden, laufen auf einer PHP-Version
+mit den kritischen RCE-Lücken CVE-2026-109618 / CVE-2026-109619. Ein `git pull`
+allein reicht nicht, das Image muss neu gebaut werden (Befehle wie oben).
+Danach die PHP-Version im Container prüfen:
+
+```bash
+docker compose exec web php -v
+```
+
+Erwartet wird `PHP 8.4.27` oder neuer.
 
 ## 🐛 Troubleshooting
 
