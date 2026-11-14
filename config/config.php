@@ -23,7 +23,10 @@ return [
     'sync' => [
         'auto_sync_interval' => 300,
         'log_retention_days' => 30,
-        'max_retries' => 3
+        'max_retries' => 3,
+        // Zeitzone fuer Stein-Zeitstempel OHNE Zonenangabe (lastModified).
+        // Liefert Stein UTC ohne "Z", hier 'UTC' setzen.
+        'stein_timezone' => getenv('STEIN_TIMEZONE') ?: 'Europe/Berlin'
     ]
 ];
 ?>

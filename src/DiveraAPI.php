@@ -3,19 +3,41 @@ class DiveraAPI {
     private $baseUrl = "https://app.divera247.com/api/v2/";
     private $accessKey; 
     
-    const FMS_STEIN_MAP = [
+    // Divera-FMS-Status -> Stein-Status. Nicht umkehrbar: 3 und 4 sind in
+    // Stein beide "inuse". Status 0, 5, 7, 8, 9 haben keine Entsprechung.
+    const FMS_TO_STEIN = [
         1 => 'semiready',
         2 => 'ready',
         3 => 'inuse',
         4 => 'inuse',
-        6 => 'notready',
+        6 => 'notready'
+    ];
+
+    // Stein-Status -> Divera-FMS-Status. "maint" und "notready" werden beide zu 6.
+    const STEIN_TO_FMS = [
         'ready' => 2,
         'semiready' => 1,
         'notready' => 6,
         'inuse' => 3,
         'maint' => 6
     ];
-    
+
+    /** Stein-Status zu einem FMS-Status, oder null ohne Entsprechung. */
+    public static function fmsToStein($fms) {
+        if (!is_numeric($fms)) {
+            return null;
+        }
+        return self::FMS_TO_STEIN[(int)$fms] ?? null;
+    }
+
+    /** FMS-Status zu einem Stein-Status, oder null bei unbekanntem Status. */
+    public static function steinToFms($steinStatus) {
+        if (!is_string($steinStatus)) {
+            return null;
+        }
+        return self::STEIN_TO_FMS[$steinStatus] ?? null;
+    }
+
     public function __construct($accessKey) {
         $this->accessKey = $accessKey;
     }
@@ -62,16 +84,25 @@ class DiveraAPI {
         return $response['data'] ?? [];
     }
     
-    public function setVehicleStatus($vehicleId, $data) {
-        $payload = [
-            'status' => self::FMS_STEIN_MAP[$data['status']],
-            'status_id' => self::FMS_STEIN_MAP[$data['status']]
-        ];
-        
-        if (!empty($data['comment'])) {
-            $payload['status_note'] = str_replace("\n", " ", $data['comment']);
+    /**
+     * Setzt FMS-Status und Notiz eines Fahrzeugs.
+     * Die Notiz wird immer mitgeschickt, auch leer: nur so wird ein in Stein
+     * geloeschter Kommentar auch in Divera geloescht.
+     */
+    public function setVehicleStatus($vehicleId, $fmsStatus, $note = '') {
+        if (!is_numeric($fmsStatus)) {
+            throw new Exception("Divera API request not sent: unknown status for vehicle $vehicleId");
         }
-        
+
+        // Divera-Notizen sind einzeilig
+        $note = trim((string)preg_replace('/\s*\R\s*/', ' ', (string)$note));
+
+        $payload = [
+            'status' => (int)$fmsStatus,
+            'status_id' => (int)$fmsStatus,
+            'status_note' => $note
+        ];
+
         return $this->makeRequest('POST', "using-vehicles/set-status/{$vehicleId}", $payload);
     }
 }

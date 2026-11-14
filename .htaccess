@@ -10,8 +10,8 @@ RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 # Blockiere direkten Zugriff auf PHP-Dateien außer api.php und index.html
 RewriteRule ^(src|config)/.*\.(php|json)$ - [F,L]
 
-# Log-, Backup- und Cache-Verzeichnisse nie ausliefern
-RewriteRule ^(logs|backups|cache)(/|$) - [F,L]
+# Log-, Backup-, Cache- und Test-Verzeichnisse nie ausliefern
+RewriteRule ^(logs|backups|cache|tests)(/|$) - [F,L]
 
 # Zugangsdaten, CLI-Skripte und Build-/Deploy-Dateien nie ausliefern.
 # cron.php und cleanup.php laufen nur per CLI (zusaetzlich im Skript geprueft).

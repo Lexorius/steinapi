@@ -116,6 +116,33 @@ Die Ausgabe muss `PHP 8.4.27` oder neuer zeigen.
 ### Feld-Konfiguration
 Im Dashboard können Sie auswählen, welche Felder synchronisiert werden sollen.
 
+### Synchronisationsregeln
+
+Status und Kommentar werden getrennt abgeglichen. Grundlage ist der zuletzt
+synchronisierte Stand je Fahrzeug (Tabelle `sync_state`):
+
+- Hat sich ein Feld nur in Stein geändert, geht es nach Divera.
+- Hat es sich nur in Divera geändert, geht es nach Stein.
+- Wurde es auf beiden Seiten geändert, gewinnt die jüngere Änderung.
+
+Besonderheiten:
+
+- Divera-Notizen sind einzeilig. Ein mehrzeiliger Stein-Kommentar wird in
+  Divera mit Leerzeichen statt Zeilenumbrüchen gespeichert und bleibt in Stein
+  unverändert.
+- Divera-Status 3 und 4 entsprechen in Stein beide „inuse", Stein „maint" und
+  „notready" in Divera beide Status 6. Gleichwertige Status werden nicht
+  überschrieben.
+- Divera-Status 0, 5, 7, 8 und 9 haben in Stein keine Entsprechung. Der Status
+  wird dann nicht übertragen, der Kommentar von Divera nach Stein schon.
+- Es läuft immer nur eine Synchronisation gleichzeitig.
+
+Die Logik lässt sich ohne echte APIs durchspielen:
+
+```bash
+php tests/sync_simulation.php
+```
+
 ### API Endpoints
 
 - `GET api.php?action=stats` - Statistiken abrufen

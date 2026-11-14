@@ -23,8 +23,18 @@ try {
     $diveraApi = new DiveraAPI($config['divera']['accesskey']);
     
     // Perform sync
-    $syncManager = new SyncManager($steinApi, $diveraApi);
-    $results = $syncManager->sync('both');
+    $syncManager = new SyncManager(
+        $steinApi,
+        $diveraApi,
+        $config['sync']['stein_timezone'] ?? 'Europe/Berlin'
+    );
+    try {
+        $results = $syncManager->sync('both');
+    } catch (SyncBusyException $e) {
+        // Ein anderer Lauf (Dashboard oder vorheriger Cron) ist noch aktiv
+        echo date('Y-m-d H:i:s') . " - Sync skipped, another run is in progress.\n";
+        exit(0);
+    }
     
     // Log to console
     echo date('Y-m-d H:i:s') . " - Sync completed. ";

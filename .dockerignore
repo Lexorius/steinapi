@@ -19,6 +19,9 @@ backups/
 cache/
 .initialized
 
+# Tests laufen lokal, nicht im Container
+tests/
+
 # Nur fuer den Host, nicht fuer den Container
 compose.yml
 docker-compose*.yml

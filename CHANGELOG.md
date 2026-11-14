@@ -3,6 +3,54 @@
 Die Version wird in `api.php` (`APP_VERSION`) gepflegt und über
 `api.php?action=health` ausgeliefert.
 
+## 1.2.0 - 2026-11-14
+
+Überarbeitung der Synchronisationslogik. Kommentare und Status wurden in
+mehreren Situationen nicht sauber übertragen oder gegenseitig überschrieben.
+
+### Behoben
+
+- **Feldweiser Abgleich statt „ganzes Fahrzeug, jüngere Seite gewinnt"**: Status
+  und Kommentar werden getrennt gegen den zuletzt synchronisierten Stand
+  verglichen (neue Tabelle `sync_state`). Eine Statusänderung in Divera
+  überschreibt nicht mehr einen kurz zuvor in Stein geänderten Kommentar.
+  Der Zeitstempel entscheidet nur noch bei echten Konflikten.
+- Kein Rück-Sync mehr durch die vom Sync selbst verursachten Zeitstempel.
+- Ein in Stein gelöschter Kommentar wird jetzt auch in Divera gelöscht
+  (leere Notiz wurde bisher nicht gesendet und kam im nächsten Lauf zurück).
+- Mehrzeilige Stein-Kommentare: gelten als gleich zu ihrer einzeiligen
+  Divera-Fassung und werden in Stein nicht mehr umgeschrieben.
+- Divera-Status 4 wurde durch den Sync auf 3 zurückgesetzt, weil beide in Stein
+  „inuse" sind. Statusvergleich erfolgt jetzt in Stein-Begriffen.
+- Stein-Status „maint" kippte bei einer Kommentaränderung aus Divera auf
+  „notready".
+- Divera-Status ohne Stein-Entsprechung (0, 5, 7, 8, 9): der Kommentar kommt
+  jetzt trotzdem in Stein an, der Status bleibt unangetastet. Vorher schlug
+  jeder Lauf still fehl.
+- Fehlgeschlagene Schreibzugriffe auf Stein wurden als Erfolg protokolliert.
+  Sie erscheinen jetzt mit Fehlermeldung im Log und werden im nächsten Lauf
+  wiederholt.
+- Feldkonfiguration im Dashboard hatte keine Wirkung. Ein abgewähltes Feld wird
+  jetzt in keine Richtung übertragen.
+- Kommentarvergleich ist jetzt exakt („007" und „7" galten als gleich).
+- Sperre gegen parallele Läufe (Cron, Dashboard-Timer, manueller Sync).
+
+### Neu
+
+- `STEIN_TIMEZONE` (Standard `Europe/Berlin`): Zeitzone für Stein-Zeitstempel
+  ohne Zonenangabe. `api.php?action=vehicles` liefert zur Kontrolle
+  `stein_last_modified` und `divera_status_ts`.
+- `tests/sync_simulation.php`: spielt die Sync-Fälle ohne echte APIs durch.
+
+### Hinweise zum Update
+
+- Die Tabelle `sync_state` wird beim ersten Lauf automatisch angelegt.
+- Im ersten Lauf nach dem Update gibt es noch keinen gespeicherten Stand, dort
+  entscheidet einmalig der Zeitstempel wie bisher.
+- Steht ein Fahrzeug in Divera auf einem Status ohne Stein-Entsprechung, wird
+  ein Stein-Kommentar erst übertragen, wenn der Status wieder zuordenbar ist.
+  So wird z. B. ein Sprechwunsch nicht erneut ausgelöst.
+
 ## 1.1.1 - 2026-10-21
 
 ### Behoben

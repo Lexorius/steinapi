@@ -8,7 +8,7 @@ require_once 'src/SyncManager.php';
 // Anwendungsversion. Wird ueber action=health ausgeliefert, damit z. B. die
 // Home-Assistant-Integration ein Update erkennen kann. Bei jedem Release
 // anheben und einen Eintrag in CHANGELOG.md ergaenzen.
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.2.0';
 
 const ALLOWED_SYNC_DIRECTIONS = ['both', 'divera', 'stein'];
 const ALLOWED_SYNC_FIELDS = ['status', 'comment', 'position', 'crew'];
@@ -102,7 +102,11 @@ function createDiveraApi(array $config): DiveraAPI
 
 function createSyncManager(array $config): SyncManager
 {
-    return new SyncManager(createSteinApi($config), createDiveraApi($config));
+    return new SyncManager(
+        createSteinApi($config),
+        createDiveraApi($config),
+        $config['sync']['stein_timezone'] ?? 'Europe/Berlin'
+    );
 }
 
 requireAuth($config['auth'] ?? []);
@@ -167,7 +171,18 @@ try {
             }
 
             $syncManager = createSyncManager($config);
-            $results = $syncManager->sync($direction);
+            try {
+                $results = $syncManager->sync($direction);
+            } catch (SyncBusyException $e) {
+                // Cron oder ein anderer Dashboard-Tab synchronisiert gerade
+                echo json_encode([
+                    'success' => true,
+                    'skipped' => true,
+                    'synced_count' => 0,
+                    'results' => []
+                ]);
+                break;
+            }
 
             echo json_encode([
                 'success' => true,
@@ -245,8 +260,11 @@ try {
                         'stein_status' => $asset['status'],
                         'stein_comment' => $asset['comment'] ?? '',
                         'stein_id' => $asset['id'],
+                        // Rohwert zur Diagnose: mit oder ohne Zeitzonenangabe?
+                        'stein_last_modified' => $asset['lastModified'] ?? null,
                         'divera_status' => null,
                         'divera_comment' => null,
+                        'divera_status_ts' => null,
                         'divera_id' => null
                     ];
                 }
@@ -257,6 +275,7 @@ try {
                 if (!empty($asset['number']) && isset($vehicles[$asset['number']])) {
                     $vehicles[$asset['number']]['divera_status'] = $asset['fmsstatus'];
                     $vehicles[$asset['number']]['divera_comment'] = $asset['fmsstatus_note'];
+                    $vehicles[$asset['number']]['divera_status_ts'] = $asset['fmsstatus_ts'] ?? null;
                     $vehicles[$asset['number']]['divera_id'] = $asset['id'];
                 }
             }

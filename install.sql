@@ -38,6 +38,15 @@ INSERT INTO sync_config (field_name, active) VALUES
     ('crew', 0)
 ON DUPLICATE KEY UPDATE field_name=field_name;
 
+-- Zuletzt synchronisierter Stand je Fahrzeug. Grundlage für den feldweisen
+-- Abgleich: nur wer vom letzten gemeinsamen Stand abweicht, hat geändert.
+CREATE TABLE IF NOT EXISTS sync_state (
+    vehicle_name VARCHAR(100) NOT NULL PRIMARY KEY,
+    last_status VARCHAR(20) NULL,
+    last_comment TEXT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 -- Tabelle für System-Status
 CREATE TABLE IF NOT EXISTS system_status (
     id INT AUTO_INCREMENT PRIMARY KEY,

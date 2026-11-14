@@ -5,7 +5,8 @@ class SteinAPI {
     private $buId; //
     private $apiKey;
     private $lastRequestTime = 0; 
-    private $assets = []; 
+    private $assets = [];
+    private $lastError = null;
     
     public function __construct($buId, $apiKey) {
         $this->buId = $buId;
@@ -73,30 +74,43 @@ class SteinAPI {
         return $this->assets;
     }
     
+    /** Fehlermeldung des letzten fehlgeschlagenen updateAsset(), sonst null. */
+    public function getLastError() {
+        return $this->lastError;
+    }
+
     public function updateAsset($assetId, $updateData, $notify = false) {
+        $this->lastError = null;
         $assets = $this->getAssets();
         $assetData = null;
-        
-        foreach ($assets as $asset) {
+        $assetIndex = null;
+
+        foreach ($assets as $index => $asset) {
             if ($asset['id'] == $assetId) {
                 $assetData = $asset;
+                $assetIndex = $index;
                 break;
             }
         }
-        
+
         if (!$assetData) {
+            $this->lastError = "Asset $assetId not found";
             return false;
         }
-        
+
         unset($updateData['id']);
         $assetData = array_merge($assetData, $updateData);
-        
+
         $endpoint = "/assets/{$assetId}?notifyRadio=" . ($notify ? 'true' : 'false');
-        
+
         try {
             $this->makeRequest('PATCH', $endpoint, $assetData);
+            // Cache nachziehen, damit ein weiteres Update im selben Lauf
+            // nicht mit dem alten Stand ueberschreibt
+            $this->assets[$assetIndex] = $assetData;
             return true;
         } catch (Exception $e) {
+            $this->lastError = $e->getMessage();
             error_log("Failed to update asset $assetId: " . $e->getMessage());
             return false;
         }

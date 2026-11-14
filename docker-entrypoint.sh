@@ -137,7 +137,8 @@ return [
     'sync' => [
         'auto_sync_interval' => ${SYNC_INTERVAL:-300},
         'log_retention_days' => ${LOG_RETENTION_DAYS:-30},
-        'max_retries' => ${MAX_RETRIES:-3}
+        'max_retries' => ${MAX_RETRIES:-3},
+        'stein_timezone' => '${STEIN_TIMEZONE:-Europe/Berlin}'
     ],
     'timezone' => '${TZ:-Europe/Berlin}'
 ];

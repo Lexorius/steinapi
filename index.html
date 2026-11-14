@@ -427,7 +427,7 @@
         
         <div class="sync-config">
             <h2 class="config-title">Feldkonfiguration</h2>
-            <p style="margin-bottom: 20px; color: #666;">Wählen Sie die Felder aus, die von Divera nach Stein synchronisiert werden sollen:</p>
+            <p style="margin-bottom: 20px; color: #666;">Wählen Sie die Felder aus, die zwischen Divera und Stein synchronisiert werden sollen. Ein abgewähltes Feld wird in keine Richtung übertragen:</p>
             <div class="field-list" id="fieldConfig">
                 <div class="field-item">
                     <input type="checkbox" id="field_status" checked onchange="updateFieldConfig('status', this.checked)">
@@ -621,7 +621,9 @@
                 button.disabled = false;
                 button.textContent = 'Jetzt synchronisieren';
                 
-                if (data.success) {
+                if (data.success && data.skipped) {
+                    showAlert('info', 'Es läuft bereits eine Synchronisation. Dieser Lauf wurde übersprungen.');
+                } else if (data.success) {
                     showAlert('success', `Synchronisation erfolgreich! ${data.synced_count} Fahrzeuge synchronisiert.`);
                 } else {
                     showAlert('error', 'Fehler bei der Synchronisation: ' + (data.error || 'Unbekannter Fehler'));
