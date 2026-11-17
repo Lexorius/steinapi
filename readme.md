@@ -98,7 +98,7 @@ Beim Add-on stehen die Werte im Reiter **Konfiguration**, beim Container in der 
 | `DIVERA_ACCESS_KEY` | `divera_access_key` | `DIVERA_ACCESS_KEY` | unverändert übernehmen |
 | `STEIN_API_KEY` | `stein_api_key` | `STEIN_API_KEY` | unverändert übernehmen |
 | `STEIN_BU_ID` | `stein_business_unit_id` | `STEIN_BUSINESS_UNIT_ID` | derselbe Wert, neuer Name |
-| fest im Code | `stein_base_url` | `STEIN_BASE_URL` | `https://stein.app/api/api/ext` eintragen, siehe unten |
+| fest im Code | `stein_base_url` | `STEIN_BASE_URL` | muss `https://stein.app/api/api/ext` lauten, siehe unten |
 | fest im Code | `divera_base_url` | `DIVERA_BASE_URL` | Voreinstellung passt |
 | Dashboard: Auto-Sync an/aus | `auto_sync_enabled` | `AUTO_SYNC_ENABLED` | `true` oder `false` |
 | Dashboard: Intervall in Sekunden | `sync_interval_minutes` | `SYNC_INTERVAL_MINUTES` | jetzt in Minuten, 300 Sekunden sind `5` |
@@ -111,9 +111,10 @@ Beim Add-on stehen die Werte im Reiter **Konfiguration**, beim Container in der 
 | `STEIN_TIMEZONE` | entfällt | entfällt | |
 | `APP_PORT`, `PHPMYADMIN_PORT`, `MYSQL_PORT` | entfällt | entfällt | |
 
-**Zur Adresse der Stein-API:** Die Voreinstellung des Nachfolgers lautet
-`https://www.stein.app/api` und weicht damit von der Adresse ab, mit der `steinapi` arbeitet.
-Für einen sicheren Umstieg die Adresse aus `steinapi` eintragen: `https://stein.app/api/api/ext`.
+**Zur Adresse der Stein-API:** Die funktionierende Adresse ist `https://stein.app/api/api/ext`,
+dieselbe, mit der `steinapi` arbeitet. Ab Version 2.2.6 des Nachfolgers ist sie voreingestellt.
+Ältere Versionen hatten `https://www.stein.app/api` als Voreinstellung. Steht dieser Wert noch in
+der Konfiguration, die Adresse dort ersetzen.
 
 ### 6. Starten und prüfen
 
