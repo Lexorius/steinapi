@@ -3,6 +3,14 @@
 Die Version wird in `api.php` (`APP_VERSION`) gepflegt und über
 `api.php?action=health` ausgeliefert.
 
+## Obsolet - 2026-11-17
+
+Das Projekt ist obsolet. Nachfolger ist
+[Stein-Divera-Sync-homeassistant-addon](https://github.com/Lexorius/Stein-Divera-Sync-homeassistant-addon),
+als Home-Assistant-Add-on oder als eigenständiger Docker-Container. Den Umstieg beschreibt
+`readme.md`. Version 1.2.0 ist der letzte Stand, am Code wurde nichts mehr geändert. Die in
+`readme.md` aufgeführten bekannten Fehler bleiben unbehoben.
+
 ## 1.2.0 - 2026-11-14
 
 Überarbeitung der Synchronisationslogik. Kommentare und Status wurden in

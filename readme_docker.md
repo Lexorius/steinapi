@@ -1,4 +1,11 @@
-# Docker Setup für Divera-Stein Sync System
+# ⚠️ OBSOLET: Docker Setup für Divera-Stein Sync System
+
+> **Dieses Projekt ist obsolet und wird nicht mehr gepflegt.** Nachfolger ist
+> [Stein-Divera-Sync-homeassistant-addon](https://github.com/Lexorius/Stein-Divera-Sync-homeassistant-addon).
+> Den Umstieg beschreibt Schritt für Schritt die [readme.md](readme.md).
+>
+> Eine Neuinstallation nach dieser Anleitung startet nicht mehr: `compose.yml` erwartet
+> Variablen, die in `.env.example` fehlen. Dieser Fehler wird hier nicht mehr behoben.
 
 ## 🚀 Schnellstart
 
